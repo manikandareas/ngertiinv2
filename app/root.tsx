@@ -1,3 +1,4 @@
+import { ConvexBetterAuthProvider } from "@convex-dev/better-auth/react";
 import {
 	isRouteErrorResponse,
 	Links,
@@ -6,13 +7,27 @@ import {
 	Scripts,
 	ScrollRestoration,
 } from "react-router";
-
 import type { Route } from "./+types/root";
 import "./app.css";
 
-import { ConvexProvider, ConvexReactClient } from "convex/react";
+import { ConvexQueryClient } from "@convex-dev/react-query";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ConvexReactClient } from "convex/react";
+import { authClient } from "./lib/auth-client";
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
+
+const convexQueryClient = new ConvexQueryClient(convex);
+const queryClient = new QueryClient({
+	defaultOptions: {
+		queries: {
+			queryKeyHashFn: convexQueryClient.hashFn(),
+			queryFn: convexQueryClient.queryFn(),
+		},
+	},
+});
+
+convexQueryClient.connect(queryClient);
 
 export const links: Route.LinksFunction = () => [
 	{ rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -47,9 +62,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
 export default function App() {
 	return (
-		<ConvexProvider client={convex}>
-			<Outlet />
-		</ConvexProvider>
+		<QueryClientProvider client={queryClient}>
+			<ConvexBetterAuthProvider client={convex} authClient={authClient}>
+				<Outlet />
+			</ConvexBetterAuthProvider>
+		</QueryClientProvider>
 	);
 }
 
