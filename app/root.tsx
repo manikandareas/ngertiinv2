@@ -1,4 +1,3 @@
-import { ConvexBetterAuthProvider } from "@convex-dev/better-auth/react";
 import {
 	isRouteErrorResponse,
 	Links,
@@ -10,10 +9,20 @@ import {
 import type { Route } from "./+types/root";
 import "./app.css";
 
+import { ClerkProvider, useAuth } from "@clerk/clerk-react";
+import { rootAuthLoader } from "@clerk/react-router/ssr.server";
 import { ConvexQueryClient } from "@convex-dev/react-query";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ConvexReactClient } from "convex/react";
-import { authClient } from "./lib/auth-client";
+import { ConvexProviderWithClerk } from "convex/react-clerk";
+import { NuqsAdapter } from "nuqs/adapters/react-router/v7";
+import { Toaster } from "~/components/ui/sonner";
+
+const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+
+if (!PUBLISHABLE_KEY) {
+	throw new Error("Missing Clerk publishable key");
+}
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
 
@@ -28,6 +37,10 @@ const queryClient = new QueryClient({
 });
 
 convexQueryClient.connect(queryClient);
+
+export async function loader(args: Route.LoaderArgs) {
+	return rootAuthLoader(args);
+}
 
 export const links: Route.LinksFunction = () => [
 	{ rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -62,11 +75,16 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
 export default function App() {
 	return (
-		<QueryClientProvider client={queryClient}>
-			<ConvexBetterAuthProvider client={convex} authClient={authClient}>
-				<Outlet />
-			</ConvexBetterAuthProvider>
-		</QueryClientProvider>
+		<ClerkProvider publishableKey={PUBLISHABLE_KEY} afterSignOutUrl="/">
+			<ConvexProviderWithClerk client={convex} useAuth={useAuth}>
+				<QueryClientProvider client={queryClient}>
+					<NuqsAdapter>
+						<Outlet />
+						<Toaster richColors />
+					</NuqsAdapter>
+				</QueryClientProvider>
+			</ConvexProviderWithClerk>
+		</ClerkProvider>
 	);
 }
 

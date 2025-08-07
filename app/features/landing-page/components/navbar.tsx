@@ -1,9 +1,9 @@
+import { SignInButton, UserButton } from "@clerk/clerk-react";
 import { convexQuery } from "@convex-dev/react-query";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "convex/_generated/api";
 import { Authenticated, Unauthenticated } from "convex/react";
 import { useState } from "react";
-import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import {
 	MobileNav,
 	MobileNavHeader,
@@ -15,14 +15,12 @@ import {
 	NavbarLogo,
 	NavItems,
 } from "~/components/ui/resizable-navbar";
-import SigninModal from "~/features/auth/components/signin-modal";
 
 export function Navbar() {
-	const { data: user } = useQuery(convexQuery(api.auth.getCurrentUser, {}));
 	const navItems = [
 		{
-			name: "Home",
-			link: "/home",
+			name: "Labs",
+			link: "/labs",
 		},
 		{
 			name: "About",
@@ -44,16 +42,13 @@ export function Navbar() {
 				<NavItems items={navItems} />
 				<div className="flex items-center gap-4">
 					<Unauthenticated>
-						<SigninModal>
+						<SignInButton>
 							<NavbarButton variant="secondary">Login</NavbarButton>
-						</SigninModal>
+						</SignInButton>
 						<NavbarButton variant="primary">Book a call</NavbarButton>
 					</Unauthenticated>
 					<Authenticated>
-						<Avatar className="size-10">
-							<AvatarFallback>{user?.name?.[0]}</AvatarFallback>
-							<AvatarImage src={user?.image} />
-						</Avatar>
+						<UserButton />
 					</Authenticated>
 				</div>
 			</NavBody>
