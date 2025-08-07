@@ -47,6 +47,24 @@ export default defineSchema({
 		.index("by_status", ["status"])
 		.index("by_creator_status", ["creatorId", "status"]),
 
+	labContext: defineTable({
+		labId: v.id("labs"),
+		type: v.union(v.literal("pdf"), v.literal("url")),
+		embedding: v.array(v.number()),
+		content: v.union(v.id("_storage"), v.string()),
+	}).index("by_lab", ["labId"]),
+
+	generationTasks: defineTable({
+		labId: v.id("labs"),
+		status: v.union(
+			v.literal("pending"),
+			v.literal("completed"),
+			v.literal("failed"),
+		),
+		message: v.optional(v.string()),
+		step: v.string(),
+	}).index("by_lab", ["labId"]),
+
 	questions: defineTable({
 		labId: v.id("labs"),
 		questionText: v.string(),

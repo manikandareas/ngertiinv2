@@ -138,6 +138,7 @@ export function FormTopicSelector({
 										className={`flex-1 ${density === "compact" ? "h-8 text-sm" : "h-9"}`}
 									/>
 									<Button
+										type="button"
 										onClick={addCustomTopic}
 										size="sm"
 										className={density === "compact" ? "h-8 px-3" : "h-9"}

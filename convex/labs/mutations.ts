@@ -1,5 +1,6 @@
 import { v } from "convex/values";
-import { mutation } from "../_generated/server";
+import { internal } from "../_generated/api";
+import { internalMutation, mutation } from "../_generated/server";
 import { generateAccessCode } from "../utils";
 
 export const createLab = mutation({
@@ -34,7 +35,7 @@ export const createLab = mutation({
 			throw new Error("User not found");
 		}
 
-		return await ctx.db.insert("labs", {
+		const labId = await ctx.db.insert("labs", {
 			creatorId: user._id,
 			accessCode: generateAccessCode(),
 			createdAsRole: args.createdAsRole,
@@ -55,6 +56,12 @@ export const createLab = mutation({
 			startTime: undefined,
 			timeLimitMinutes: undefined,
 		});
+
+		ctx.scheduler.runAfter(0, internal.labs.actions.startGenerationQuestion, {
+			labId,
+		});
+
+		return labId;
 	},
 });
 
@@ -103,6 +110,116 @@ export const updateLabSettings = mutation({
 			endTime: args.endTime,
 			startTime: args.startTime,
 			timeLimitMinutes: args.timeLimitMinutes,
+		});
+	},
+});
+
+export const upsertGenerationTask = internalMutation({
+	args: {
+		labId: v.id("labs"),
+		step: v.string(),
+		message: v.optional(v.string()),
+		status: v.optional(
+			v.union(
+				v.literal("pending"),
+				v.literal("completed"),
+				v.literal("failed"),
+			),
+		),
+	},
+	handler: async (ctx, args) => {
+		const lab = await ctx.db.get(args.labId);
+
+		if (!lab) {
+			throw new Error("Lab not found");
+		}
+
+		const generationTask = await ctx.db
+			.query("generationTasks")
+			.withIndex("by_lab", (q) => q.eq("labId", args.labId))
+			.first();
+
+		if (generationTask) {
+			return await ctx.db.patch(generationTask._id, {
+				status: args.status,
+				step: args.step,
+				message: args.message,
+			});
+		}
+
+		return await ctx.db.insert("generationTasks", {
+			labId: args.labId,
+			status: "pending",
+			step: args.step,
+			message: args.message,
+		});
+	},
+});
+
+export const insertQuestionWithOptions = internalMutation({
+	args: {
+		labId: v.id("labs"),
+		question: v.object({
+			questionText: v.string(),
+			explanation: v.optional(v.string()),
+			questionOrder: v.number(),
+			options: v.array(
+				v.object({
+					optionText: v.string(),
+					optionOrder: v.number(),
+					isCorrect: v.boolean(),
+				}),
+			),
+		}),
+	},
+	handler: async (ctx, args) => {
+		const lab = await ctx.db.get(args.labId);
+
+		if (!lab) {
+			throw new Error("Lab not found");
+		}
+
+		const questionId = await ctx.db.insert("questions", {
+			labId: args.labId,
+			questionText: args.question.questionText,
+			explanation: args.question.explanation,
+			questionOrder: args.question.questionOrder,
+		});
+
+		for (const option of args.question.options) {
+			await ctx.db.insert("questionOptions", {
+				questionId,
+				optionText: option.optionText,
+				optionOrder: option.optionOrder,
+				isCorrect: option.isCorrect,
+			});
+		}
+
+		return questionId;
+	},
+});
+
+export const insertQuestionOption = internalMutation({
+	args: {
+		questionId: v.id("questions"),
+		option: v.object({
+			optionText: v.string(),
+			optionOrder: v.number(),
+			isCorrect: v.boolean(),
+		}),
+	},
+	handler: async (ctx, args) => {
+		const question = await ctx.db.get(args.questionId);
+
+		if (!question) {
+			throw new Error("Question not found");
+		}
+
+		return await ctx.db.insert("questionOptions", {
+			questionId: args.questionId,
+			optionText: args.option.optionText,
+			optionOrder: args.option.optionOrder,
+			isCorrect: args.option.isCorrect,
 		});
 	},
 });

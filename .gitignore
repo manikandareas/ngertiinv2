@@ -117,3 +117,8 @@ pids
 
 # Convex specific
 convex/_generated
+convex/_generated/**
+
+
+bun.lockb
+bun.lock

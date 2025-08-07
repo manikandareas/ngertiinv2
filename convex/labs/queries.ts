@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { query } from "../_generated/server";
+import { internalQuery, query } from "../_generated/server";
 
 export const getUserLabs = query({
 	args: {},
@@ -54,5 +54,14 @@ export const getLabWithQuestions = query({
 		);
 
 		return { ...lab, questions: questionsWithOptions };
+	},
+});
+
+export const getLab = internalQuery({
+	args: {
+		labId: v.id("labs"),
+	},
+	handler: async (ctx, args) => {
+		return await ctx.db.get(args.labId);
 	},
 });
