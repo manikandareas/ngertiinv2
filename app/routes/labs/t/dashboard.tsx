@@ -7,6 +7,7 @@ import { Suspense } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { LabsSkeleton } from "~/features/home/components/labs-skeleton";
 import { SettingsTab } from "~/features/t/components/form-settings";
+import { MonitoringTab } from "~/features/labs/monitoring/monitoring-tab";
 import { QuestionsTab } from "~/features/labs/questions/questions-tab";
 import type { Route } from "./+types/dashboard";
 
@@ -60,9 +61,7 @@ export default function LabsDashboard(props: Route.ComponentProps) {
 					<QuestionsTab labId={props.params.lid as Id<"labs">} />
 				</TabsContent>
 				<TabsContent value="monitoring">
-					<p className="p-4 text-center text-xs text-muted-foreground">
-						Content for Tab 3
-					</p>
+					<MonitoringTab labId={props.params.lid as Id<"labs">} />
 				</TabsContent>
 			</Tabs>
 		</div>
