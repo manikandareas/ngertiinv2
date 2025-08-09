@@ -12,6 +12,8 @@ import { SortableContext, arrayMove, verticalListSortingStrategy } from "@dnd-ki
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, Plus, Trash2 } from "lucide-react";
+import { MatchHighlighter } from "./match-highlighter";
+import type { HighlightRange } from "./match-highlighter";
 
 export type Option = Doc<"questionOptions">;
 
@@ -24,14 +26,16 @@ function SortableOption({
   onTextBlur,
   onToggleCorrect,
   onDelete,
+  getHighlights,
 }: {
   option: Option;
   isOwner: boolean;
   onTextBlur: (id: Id<"questionOptions">, text: string) => void;
   onToggleCorrect: (id: Id<"questionOptions">, next: boolean) => void;
   onDelete: (id: Id<"questionOptions">) => void;
+  getHighlights?: (text: string) => HighlightRange[];
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: `o-${option._id}`, disabled: !isOwner });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: `o-${option._id}`, disabled: !isOwner || Boolean(getHighlights) });
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -39,31 +43,38 @@ function SortableOption({
   } as React.CSSProperties;
 
   return (
-    <div ref={setNodeRef} style={style} className="flex items-center gap-2 p-2 border rounded-md bg-white">
-      {isOwner ? (
-        <button type="button" className="cursor-grab text-muted-foreground" {...attributes} {...listeners} aria-label="Drag option">
-          <GripVertical size={16} />
-        </button>
-      ) : (
-        <div className="w-4" />
-      )}
-      <Checkbox
-        checked={option.isCorrect}
-        onCheckedChange={(v) => isOwner && onToggleCorrect(option._id, Boolean(v))}
-        disabled={!isOwner}
-      />
-      <Input
-        className="flex-1"
-        defaultValue={option.optionText}
-        onBlur={(e) => isOwner && onTextBlur(option._id, e.currentTarget.value)}
-        disabled={!isOwner}
-        placeholder="Option text"
-      />
-      {isOwner && (
-        <Button size="sm" variant="ghost" onClick={() => onDelete(option._id)}>
-          <Trash2 className="size-4" />
-        </Button>
-      )}
+    <div ref={setNodeRef} style={style} className="p-2 border rounded-md bg-white">
+      <div className="flex items-center gap-2">
+        {isOwner && !getHighlights ? (
+          <button type="button" className="cursor-grab text-muted-foreground" {...attributes} {...listeners} aria-label="Drag option">
+            <GripVertical size={16} />
+          </button>
+        ) : (
+          <div className="w-4" />
+        )}
+        <Checkbox
+          checked={option.isCorrect}
+          onCheckedChange={(v) => isOwner && onToggleCorrect(option._id, Boolean(v))}
+          disabled={!isOwner}
+        />
+        <Input
+          className="flex-1"
+          defaultValue={option.optionText}
+          onBlur={(e) => isOwner && onTextBlur(option._id, e.currentTarget.value)}
+          disabled={!isOwner}
+          placeholder="Option text"
+        />
+        {isOwner && (
+          <Button size="sm" variant="ghost" onClick={() => onDelete(option._id)}>
+            <Trash2 className="size-4" />
+          </Button>
+        )}
+      </div>
+      {getHighlights && option.optionText ? (
+        <div className="mt-1 text-xs text-muted-foreground">
+          <MatchHighlighter text={option.optionText} ranges={getHighlights(option.optionText)} />
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -73,11 +84,13 @@ export function OptionsEditor({
   isOwner,
   questionId,
   options,
+  getHighlights,
 }: {
   labId: Id<"labs">;
   isOwner: boolean;
   questionId: Id<"questions">;
   options: Option[];
+  getHighlights?: (text: string) => HighlightRange[];
 }) {
   const queryClient = useQueryClient();
   const labQ = useMemo(() => convexQuery(api.labs.queries.getLabWithQuestions, { labId }), [labId]);
@@ -158,7 +171,7 @@ export function OptionsEditor({
   }
 
   function handleDragEnd(e: DragEndEvent) {
-    if (!isOwner) return;
+    if (!isOwner || getHighlights) return;
     const { active, over } = e;
     if (!over || active.id === over.id) return;
     const aId = String(active.id);
@@ -199,6 +212,7 @@ export function OptionsEditor({
                 onTextBlur={onTextBlur}
                 onToggleCorrect={onToggleCorrect}
                 onDelete={onDelete}
+                getHighlights={getHighlights}
               />
             ))}
           </div>

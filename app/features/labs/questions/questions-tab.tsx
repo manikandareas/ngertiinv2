@@ -6,6 +6,8 @@ import { Suspense, useMemo } from "react";
 import { Skeleton } from "~/components/ui/skeleton";
 import { QuestionsHeader } from "./questions-header";
 import { QuestionsList } from "./questions-list";
+import { QuestionsSearch } from "./questions-search";
+import { useQuestionsSearch } from "./use-questions-search";
 
 export function QuestionsTab({ labId }: { labId: Id<"labs"> }) {
 	// Bundle: { lab, questions }
@@ -25,6 +27,9 @@ export function QuestionsTab({ labId }: { labId: Id<"labs"> }) {
 		if (!labBundle || !me) return false;
 		return labBundle.lab.creatorId === me._id;
 	}, [labBundle, me]);
+
+	// Call hooks unconditionally (search uses URL-state) to satisfy Rules of Hooks
+	const search = useQuestionsSearch(labBundle?.questions ?? []);
 
 	if (isPending) {
 		return (
@@ -54,10 +59,18 @@ export function QuestionsTab({ labId }: { labId: Id<"labs"> }) {
 				/>
 			</Suspense>
 
+			<QuestionsSearch
+				matchedCount={search.matchedCount}
+				totalCount={search.totalCount}
+				isSearchActive={search.isSearchActive}
+			/>
+
 			<QuestionsList
 				labId={labId}
 				isOwner={isOwner}
-				questions={labBundle.questions}
+				questions={search.filtered}
+				isSearchActive={search.isSearchActive}
+				getHighlights={search.isSearchActive ? search.getHighlights : undefined}
 			/>
 		</div>
 	);

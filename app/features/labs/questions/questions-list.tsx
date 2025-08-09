@@ -11,6 +11,7 @@ import type { Doc, Id } from "convex/_generated/dataModel";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { QuestionCard } from "./question-card";
+import type { HighlightRange } from "./match-highlighter";
 
 export type QuestionWithOptions = Doc<"questions"> & {
 	options: Doc<"questionOptions">[];
@@ -22,10 +23,14 @@ export function QuestionsList({
 	labId,
 	isOwner,
 	questions,
+	isSearchActive = false,
+	getHighlights,
 }: {
 	labId: Id<"labs">;
 	isOwner: boolean;
 	questions: QuestionWithOptions[];
+	isSearchActive?: boolean;
+	getHighlights?: (text: string) => HighlightRange[];
 }) {
 	const queryClient = useQueryClient();
 	const labQ = useMemo(
@@ -86,7 +91,7 @@ export function QuestionsList({
 		reorderQuestions({ labId, orderedIds });
 	}
 
-	if (ordered.length === 0) {
+	if (!isSearchActive && ordered.length === 0) {
 		return (
 			<div className="text-sm text-muted-foreground border rounded-md p-4">
 				No questions yet.
@@ -107,7 +112,8 @@ export function QuestionsList({
 							labId={labId}
 							isOwner={isOwner}
 							question={q}
-							dndDisabled={!isOwner || isPending}
+							dndDisabled={!isOwner || isPending || isSearchActive}
+							getHighlights={getHighlights}
 						/>
 					))}
 				</div>

@@ -6,11 +6,13 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "convex/_generated/api";
 import type { Doc, Id } from "convex/_generated/dataModel";
 import { GripVertical } from "lucide-react";
-import { useMemo } from "react";
 import type { CSSProperties } from "react";
+import { useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { MatchHighlighter } from "./match-highlighter";
+import type { HighlightRange } from "./match-highlighter";
 import {
 	Form,
 	FormControl,
@@ -38,11 +40,13 @@ export function QuestionCard({
 	isOwner,
 	question,
 	dndDisabled,
+	getHighlights,
 }: {
 	labId: Id<"labs">;
 	isOwner: boolean;
 	question: QuestionWithOptions;
 	dndDisabled?: boolean;
+	getHighlights?: (text: string) => HighlightRange[];
 }) {
 	const labQ = useMemo(
 		() => convexQuery(api.labs.queries.getLabWithQuestions, { labId }),
@@ -170,6 +174,14 @@ export function QuestionCard({
 											/>
 										</FormControl>
 										<FormMessage />
+										{getHighlights ? (
+											<div className="text-xs text-muted-foreground">
+												<MatchHighlighter
+													text={question.questionText}
+													ranges={getHighlights(question.questionText)}
+												/>
+											</div>
+										) : null}
 									</FormItem>
 								)}
 							/>
@@ -192,6 +204,14 @@ export function QuestionCard({
 											/>
 										</FormControl>
 										<FormMessage />
+										{getHighlights && (question.explanation || "").length > 0 ? (
+											<div className="text-xs text-muted-foreground">
+												<MatchHighlighter
+													text={question.explanation ?? ""}
+													ranges={getHighlights(question.explanation ?? "")}
+												/>
+											</div>
+										) : null}
 									</FormItem>
 								)}
 							/>
@@ -203,6 +223,7 @@ export function QuestionCard({
 						isOwner={isOwner}
 						questionId={question._id}
 						options={question.options}
+						getHighlights={getHighlights}
 					/>
 				</div>
 			</div>
