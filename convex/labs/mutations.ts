@@ -3,6 +3,7 @@ import { internal } from "../_generated/api";
 import { internalMutation, mutation } from "../_generated/server";
 import { rateLimiter } from "../components";
 import { generateAccessCode } from "../utils";
+import { assertLabOwner } from "../utils/ownership";
 
 export const createLab = mutation({
 	args: {
@@ -92,6 +93,8 @@ export const updateLabSettings = mutation({
 
 	handler: async (ctx, args) => {
 		await rateLimiter.limit(ctx, "updateLabs", { throws: true });
+
+		await assertLabOwner(ctx, args.labId);
 
 		const lab = await ctx.db.get(args.labId);
 
