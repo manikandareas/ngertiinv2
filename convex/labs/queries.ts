@@ -35,17 +35,19 @@ export const getLabWithQuestions = query({
 
 		if (!lab) return null;
 
+		// Order questions by questionOrder
 		const questions = await ctx.db
 			.query("questions")
-			.withIndex("by_lab", (q) => q.eq("labId", lab._id))
+			.withIndex("by_lab_order", (q) => q.eq("labId", lab._id))
 			.order("asc")
 			.collect();
 
 		const questionsWithOptions = await Promise.all(
 			questions.map(async (question) => {
+				// Order options by optionOrder
 				const options = await ctx.db
 					.query("questionOptions")
-					.withIndex("by_question", (q) => q.eq("questionId", question._id))
+					.withIndex("by_question_order", (q) => q.eq("questionId", question._id))
 					.order("asc")
 					.collect();
 
@@ -53,7 +55,8 @@ export const getLabWithQuestions = query({
 			}),
 		);
 
-		return { ...lab, questions: questionsWithOptions };
+		// Return a bundle with lab and ordered questions/options
+		return { lab, questions: questionsWithOptions };
 	},
 });
 

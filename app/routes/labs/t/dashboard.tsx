@@ -1,5 +1,5 @@
 import { convexQuery } from "@convex-dev/react-query";
-import { QueryClient, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { api } from "convex/_generated/api";
 import type { Doc, Id } from "convex/_generated/dataModel";
 import { Activity, FileText, LayoutDashboard, Settings } from "lucide-react";
@@ -7,6 +7,7 @@ import { Suspense } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { LabsSkeleton } from "~/features/home/components/labs-skeleton";
 import { SettingsTab } from "~/features/t/components/form-settings";
+import { QuestionsTab } from "~/features/labs/questions/questions-tab";
 import type { Route } from "./+types/dashboard";
 
 const tabs = [
@@ -17,7 +18,7 @@ const tabs = [
 ];
 
 export default function LabsDashboard(props: Route.ComponentProps) {
-	const { data: lab, isPending } = useQuery(
+	const { data: labBundle, isPending } = useQuery(
 		convexQuery(api.labs.queries.getLabWithQuestions, {
 			labId: props.params.lid as Id<"labs">,
 		}),
@@ -52,13 +53,11 @@ export default function LabsDashboard(props: Route.ComponentProps) {
 				</TabsContent>
 				<TabsContent value="settings">
 					<Suspense fallback={<div>Loading...</div>}>
-						<SettingsTab data={lab as Doc<"labs">} />
+						<SettingsTab data={labBundle?.lab as Doc<"labs">} />
 					</Suspense>
 				</TabsContent>
 				<TabsContent value="questions">
-					<p className="p-4 text-center text-xs text-muted-foreground">
-						Questions
-					</p>
+					<QuestionsTab labId={props.params.lid as Id<"labs">} />
 				</TabsContent>
 				<TabsContent value="monitoring">
 					<p className="p-4 text-center text-xs text-muted-foreground">

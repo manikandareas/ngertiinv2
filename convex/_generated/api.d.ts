@@ -10,10 +10,15 @@
 
 import type * as ai from "../ai.js";
 import type * as components_ from "../components.js";
+import type * as generationTasks_queries from "../generationTasks/queries.js";
 import type * as labs_actions from "../labs/actions.js";
 import type * as labs_mutations from "../labs/mutations.js";
 import type * as labs_queries from "../labs/queries.js";
 import type * as labs_workflows from "../labs/workflows.js";
+import type * as questionOptions_mutations from "../questionOptions/mutations.js";
+import type * as questions_mutations from "../questions/mutations.js";
+import type * as users_queries from "../users/queries.js";
+import type * as utils_ownership from "../utils/ownership.js";
 import type * as utils from "../utils.js";
 
 import type {
@@ -33,10 +38,15 @@ import type {
 declare const fullApi: ApiFromModules<{
   ai: typeof ai;
   components: typeof components_;
+  "generationTasks/queries": typeof generationTasks_queries;
   "labs/actions": typeof labs_actions;
   "labs/mutations": typeof labs_mutations;
   "labs/queries": typeof labs_queries;
   "labs/workflows": typeof labs_workflows;
+  "questionOptions/mutations": typeof questionOptions_mutations;
+  "questions/mutations": typeof questions_mutations;
+  "users/queries": typeof users_queries;
+  "utils/ownership": typeof utils_ownership;
   utils: typeof utils;
 }>;
 declare const fullApiWithMounts: typeof fullApi;
