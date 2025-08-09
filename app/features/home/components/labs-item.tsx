@@ -112,11 +112,19 @@ const DifficultyBadge = ({
 };
 
 const LabTopics = ({ topics }: { topics: string[] }) => {
+	const text =
+		topics.slice(0, 2).join(", ").length > 21
+			? topics[0]
+			: topics.slice(0, 2).join(", ");
+
+	const showPlus =
+		topics.length > 2 ||
+		(topics.slice(0, 2).join(", ").length > 21 && topics.length >= 2);
 	return (
 		<p className="text-xs text-muted-foreground flex items-center gap-1">
 			<IconCategory size={14} />
-			{topics.slice(0, 2).join(", ")}
-			{topics.length > 2 ? ` +` : ""}
+			{text}
+			{showPlus ? ` +${topics.length}` : ""}
 		</p>
 	);
 };

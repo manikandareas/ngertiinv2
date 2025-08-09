@@ -11,6 +11,7 @@
 	"dependencies": {
 		"@ai-sdk/openai": "^2.0.4",
 		"@clerk/react-router": "^1.8.9",
+		"@convex-dev/rate-limiter": "^0.2.12",
 		"@convex-dev/react-query": "^0.0.0-alpha.11",
 		"@convex-dev/workflow": "^0.2.5",
 		"@hookform/resolvers": "^5.2.1",

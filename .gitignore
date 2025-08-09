@@ -122,3 +122,7 @@ convex/_generated/**
 
 bun.lockb
 bun.lock
+convex/_generated/api.d.ts
+convex/_generated/server.d.ts
+convex/_generated/api.js
+convex/_generated/server.js

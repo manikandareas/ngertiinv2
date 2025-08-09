@@ -3,6 +3,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { api } from "convex/_generated/api";
 import type { Doc } from "convex/_generated/dataModel";
+import { ConvexError } from "convex/values";
 import { motion } from "framer-motion";
 import { ListChecks, Loader, Timer, ToggleLeft } from "lucide-react";
 import { useForm } from "react-hook-form";
@@ -55,7 +56,20 @@ export const SettingsTab = ({ data }: { data: Doc<"labs"> }) => {
 		onSuccess: () => {
 			toast.success("Lab settings updated");
 		},
-		onError: () => {
+		onError: (error) => {
+			if (error instanceof ConvexError) {
+				if (
+					error.data.kind === "RateLimited" &&
+					error.data.name === "updateLabs"
+				) {
+					const seconds = Math.ceil(error.data.retryAfter / 1000);
+					toast.error("You are updating too fast", {
+						description: `Please wait ${seconds} seconds before updating again`,
+					});
+					return;
+				}
+			}
+
 			toast.error("Failed to update lab settings");
 		},
 	});

@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalMutation, mutation } from "../_generated/server";
+import { rateLimiter } from "../components";
 import { generateAccessCode } from "../utils";
 
 export const createLab = mutation({
@@ -90,6 +91,8 @@ export const updateLabSettings = mutation({
 	},
 
 	handler: async (ctx, args) => {
+		await rateLimiter.limit(ctx, "updateLabs", { throws: true });
+
 		const lab = await ctx.db.get(args.labId);
 
 		if (!lab) {
