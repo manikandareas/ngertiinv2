@@ -18,11 +18,17 @@ export const startGenerationQuestion = internalAction({
 				labId: args.labId,
 			},
 		);
+		const MAX_RETRIES = 60;
+		let retries = 0;
 		try {
 			while (true) {
 				const status = await workflow.status(ctx, workflowId);
 				if (status.type === "inProgress") {
-					continue;
+				if (retries++ >= MAX_RETRIES) {
+				throw new Error("Workflow timed out");
+				}
+				await new Promise((res) => setTimeout(res, 1000));
+				continue;
 				}
 				console.log("Workflow completed with status:", status);
 				break;
