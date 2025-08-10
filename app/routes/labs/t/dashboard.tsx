@@ -3,12 +3,13 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "convex/_generated/api";
 import type { Doc, Id } from "convex/_generated/dataModel";
 import { Activity, FileText, LayoutDashboard, Settings } from "lucide-react";
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { LabsSkeleton } from "~/features/home/components/labs-skeleton";
-import { SettingsTab } from "~/features/t/components/form-settings";
 import { MonitoringTab } from "~/features/labs/monitoring/monitoring-tab";
+import { OverviewTab } from "~/features/labs/overview/overview-tab";
 import { QuestionsTab } from "~/features/labs/questions/questions-tab";
+import { SettingsTab } from "~/features/t/components/form-settings";
 import type { Route } from "./+types/dashboard";
 
 const tabs = [
@@ -25,6 +26,7 @@ export default function LabsDashboard(props: Route.ComponentProps) {
 		}),
 	);
 
+	const [tab, setTab] = useState<string>("overview");
 	if (isPending) {
 		return (
 			<div className="mx-auto w-full max-w-6xl px-6 py-20 xl:px-0 space-y-6">
@@ -32,9 +34,10 @@ export default function LabsDashboard(props: Route.ComponentProps) {
 			</div>
 		);
 	}
+
 	return (
 		<div className="mx-auto w-full max-w-6xl px-6 py-20 xl:px-0 space-y-6">
-			<Tabs defaultValue="settings">
+			<Tabs value={tab} onValueChange={setTab}>
 				<TabsList>
 					{tabs.map((tab) => (
 						<TabsTrigger
@@ -48,9 +51,10 @@ export default function LabsDashboard(props: Route.ComponentProps) {
 					))}
 				</TabsList>
 				<TabsContent value="overview">
-					<p className="p-4 text-center text-xs text-muted-foreground">
-						Overview
-					</p>
+					<OverviewTab
+						labId={props.params.lid as Id<"labs">}
+						onNavigateTab={(t) => setTab(t)}
+					/>
 				</TabsContent>
 				<TabsContent value="settings">
 					<Suspense fallback={<div>Loading...</div>}>

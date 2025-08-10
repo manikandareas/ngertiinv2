@@ -2,7 +2,6 @@ import { IconCategory } from "@tabler/icons-react";
 import type { Doc } from "convex/_generated/dataModel";
 import {
 	ArrowRight,
-	FileQuestion,
 	FileText,
 	GraduationCap,
 	Signal,

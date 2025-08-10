@@ -1,6 +1,6 @@
 // convex/index.ts
 
-import { HOUR, MINUTE, RateLimiter } from "@convex-dev/rate-limiter";
+import { MINUTE, RateLimiter } from "@convex-dev/rate-limiter";
 import { WorkflowManager } from "@convex-dev/workflow";
 import { components } from "./_generated/api";
 

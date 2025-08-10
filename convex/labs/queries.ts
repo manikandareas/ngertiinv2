@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { internalQuery, query } from "../_generated/server";
+import { assertLabOwner } from "../utils/ownership";
 
 export const getUserLabs = query({
 	args: {},
@@ -55,16 +56,80 @@ export const getLabWithQuestions = query({
 			}),
 		);
 
-		// Return a bundle with lab and ordered questions/options
-		return { lab, questions: questionsWithOptions };
-	},
+    // Return a bundle with lab and ordered questions/options
+    return { lab, questions: questionsWithOptions };
+  },
 });
 
 export const getLab = internalQuery({
-	args: {
-		labId: v.id("labs"),
-	},
-	handler: async (ctx, args) => {
-		return await ctx.db.get(args.labId);
-	},
+  args: {
+    labId: v.id("labs"),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.labId);
+  },
+});
+
+export const overviewKpi = query({
+  args: {
+    labId: v.id("labs"),
+    windowDays: v.optional(v.number()),
+  },
+  handler: async (ctx, { labId, windowDays }) => {
+    await assertLabOwner(ctx, labId);
+
+    const now = Date.now();
+    const days = typeof windowDays === "number" && windowDays > 0 ? windowDays : 7;
+    const windowStart = now - days * 24 * 60 * 60 * 1000;
+
+    // sessions within window by any relevant timestamp
+    const sessions = await ctx.db
+      .query("labSessions")
+      .withIndex("by_lab_status", (q) => q.eq("labId", labId))
+      .collect();
+
+    const inWindow = sessions.filter(
+      (s) =>
+        (s.startedAt ?? 0) >= windowStart ||
+        (s.completedAt ?? 0) >= windowStart ||
+        (s.lastActivity ?? 0) >= windowStart,
+    );
+
+    const uniqueParticipants = new Set(inWindow.map((s) => s.userId));
+    const activeNow = sessions.filter(
+      (s) => s.status === "in_progress" && (s.lastActivity ?? 0) >= now - 10 * 60 * 1000,
+    ).length;
+
+    const completedSessions = inWindow.filter((s) => s.status === "completed");
+    const completed = completedSessions.length;
+    const total = inWindow.length;
+    const completionRate = total ? completed / total : 0;
+
+    const avgScore = completed
+      ? completedSessions.reduce((a, b) => a + (b.totalScore ?? 0), 0) / completed
+      : null;
+
+    const avgAccuracy = completed
+      ? completedSessions.reduce(
+          (a, b) => a + (b.correctAnswers ?? 0) / (b.totalQuestions || 1),
+          0,
+        ) / completed
+      : null;
+
+    const totalQuestions = await ctx.db
+      .query("questions")
+      .withIndex("by_lab", (q) => q.eq("labId", labId))
+      .collect()
+      .then((arr) => arr.length);
+
+    return {
+      participants: uniqueParticipants.size,
+      activeNow,
+      completed,
+      completionRate,
+      avgScore,
+      avgAccuracy,
+      totalQuestions,
+    } as const;
+  },
 });
