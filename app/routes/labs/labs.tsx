@@ -1,11 +1,12 @@
 import { convexQuery } from "@convex-dev/react-query";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "convex/_generated/api";
-import { Plus } from "lucide-react";
+import { JoystickIcon, Plus } from "lucide-react";
 import { Link } from "react-router";
-import { buttonVariants } from "~/components/ui/3d-button";
+import { useState } from "react";
+import { JoinLabModal } from "~/features/labs/join/join-lab-modal";
+import { Button, buttonVariants } from "~/components/ui/3d-button";
 import { Input } from "~/components/ui/input";
-import { Skeleton } from "~/components/ui/skeleton";
 import { LabsItem } from "~/features/home/components/labs-item";
 import { LabsSkeleton } from "~/features/home/components/labs-skeleton";
 
@@ -17,16 +18,23 @@ export function meta() {
 }
 
 export default function LabsPage() {
+    const [joinOpen, setJoinOpen] = useState(false);
 	const { data: labs, isPending } = useQuery(
 		convexQuery(api.labs.queries.getUserLabs, {}),
 	);
 	return (
 		<div className="mx-auto w-full max-w-6xl px-6 py-20 xl:px-0 space-y-6">
 			<h1 className="text-3xl font-bold">Your Labs</h1>
-			<div className="flex items-center gap-4">
-				<Link to={"/labs/new"} className={buttonVariants({ size: "sm" })}>
-					Create new <Plus size={16} />
-				</Link>
+			<div className="flex items-center justify-between">
+				<div className="flex items-center gap-2">
+					<Link to={"/labs/new"} className={buttonVariants({ size: "sm" })}>
+						Create new <Plus size={16} />
+					</Link>
+					<span className="text-muted-foreground text-sm font-medium">/</span>
+					<Button size={"sm"} variant={"ai"} onClick={() => setJoinOpen(true)}>
+						Join with code <JoystickIcon size={16} />
+					</Button>
+				</div>
 				<Input placeholder="Search for quizzes" className="max-w-xs" />
 			</div>
 
@@ -39,6 +47,7 @@ export default function LabsPage() {
 					))}
 				</div>
 			)}
+			<JoinLabModal open={joinOpen} onOpenChange={setJoinOpen} />
 		</div>
 	);
 }

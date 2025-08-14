@@ -12,6 +12,12 @@ import { QuestionsTab } from "~/features/labs/questions/questions-tab";
 import { SettingsTab } from "~/features/t/components/form-settings";
 import type { Route } from "./+types/dashboard";
 
+export function meta() {
+	return [
+		{ title: "Detail Lab | Ngerti.In" },
+		{ name: "description", content: "Detail lab page for Ngerti.In!" },
+	];
+}
 const tabs = [
 	{ id: "overview", label: "Overview", icon: LayoutDashboard },
 	{ id: "settings", label: "Settings", icon: Settings },

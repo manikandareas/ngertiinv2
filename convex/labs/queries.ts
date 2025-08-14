@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { internalQuery, query } from "../_generated/server";
 import { assertLabOwner } from "../utils/ownership";
+import { normalizeAccessCode } from "../utils";
 
 export const getUserLabs = query({
 	args: {},
@@ -25,6 +26,64 @@ export const getUserLabs = query({
 			.withIndex("by_creator", (l) => l.eq("creatorId", user._id))
 			.collect();
 	},
+});
+
+export const resolveByAccessCode = query({
+  args: { code: v.string() },
+  handler: async (ctx, { code }) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+
+    const me = await ctx.db
+      .query("users")
+      .withIndex("by_subject", (q) => q.eq("subject", identity.subject))
+      .first();
+    if (!me) throw new Error("Unauthorized");
+
+    const normalized = normalizeAccessCode(code);
+
+    const lab = await ctx.db
+      .query("labs")
+      .withIndex("by_access_code", (q) => q.eq("accessCode", normalized))
+      .first();
+
+    if (!lab || lab.status === "closed") {
+      // Neutral error to avoid enumeration
+      throw new Error("Kode tidak valid atau sudah tidak aktif");
+    }
+
+    const teacher = await ctx.db.get(lab.creatorId);
+
+    // attempts used by this user on this lab
+    const attempts = await ctx.db
+      .query("labSessions")
+      .withIndex("by_user_lab_attempt", (q) =>
+        q.eq("userId", me._id).eq("labId", lab._id)
+      )
+      .collect();
+    const attemptsUsed = attempts.length;
+
+    // in-progress session (resume-able)
+    const inprog = await ctx.db
+      .query("labSessions")
+      .withIndex("by_lab_user", (q) => q.eq("labId", lab._id).eq("userId", me._id))
+      .filter((q) => q.eq(q.field("status"), "in_progress"))
+      .first();
+
+    const attemptsLeft = Math.max(0, lab.maxAttempts - attemptsUsed);
+    const now = Date.now();
+    const endOk = typeof lab.endTime === "number" ? now <= lab.endTime : true;
+    const canStartNew = endOk && attemptsLeft > 0;
+
+    return {
+      lab: { _id: lab._id, title: lab.name, endTime: lab.endTime, maxAttempts: lab.maxAttempts },
+      teacher: { name: teacher?.name ?? "", avatarUrl: teacher?.image ?? "" },
+      attemptsUsed,
+      attemptsLeft,
+      hasInProgress: !!inprog,
+      canStartNew,
+    } as const;
+  },
 });
 
 export const getLabWithQuestions = query({

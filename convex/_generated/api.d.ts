@@ -12,6 +12,7 @@ import type * as ai from "../ai.js";
 import type * as analytics_queries from "../analytics/queries.js";
 import type * as components_ from "../components.js";
 import type * as generationTasks_queries from "../generationTasks/queries.js";
+import type * as labSessions_mutations from "../labSessions/mutations.js";
 import type * as labSessions_queries from "../labSessions/queries.js";
 import type * as labs_actions from "../labs/actions.js";
 import type * as labs_mutations from "../labs/mutations.js";
@@ -43,6 +44,7 @@ declare const fullApi: ApiFromModules<{
   "analytics/queries": typeof analytics_queries;
   components: typeof components_;
   "generationTasks/queries": typeof generationTasks_queries;
+  "labSessions/mutations": typeof labSessions_mutations;
   "labSessions/queries": typeof labSessions_queries;
   "labs/actions": typeof labs_actions;
   "labs/mutations": typeof labs_mutations;

@@ -12,6 +12,9 @@ export default [
 		route("labs", "routes/labs/labs.tsx"),
 		route("labs/:lid/t/dashboard", "routes/labs/t/dashboard.tsx"),
 	]),
+
+	route("labs/:lid/t/session/:sessionId", "routes/labs/session/t-session.tsx"),
+
 	route("labs/new", "routes/labs/new.tsx"),
 
 	route("sign-up", "routes/sign-up.tsx"),
