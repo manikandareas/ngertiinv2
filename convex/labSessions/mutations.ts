@@ -58,26 +58,99 @@ export const startOrResumeWithCode = mutation({
 		}
 
 		// 3) Initialize a new session
-		const questionsCount = await ctx.db
-			.query("questions")
-			.withIndex("by_lab", (q) => q.eq("labId", lab._id))
-			.collect()
-			.then((arr) => arr.length);
 
-		const sessionId = await ctx.db.insert("labSessions", {
-			labId: lab._id,
-			userId: user._id,
-			attemptNumber: attemptsUsed + 1,
-			status: "in_progress",
-			startedAt: now,
-			completedAt: undefined,
-			totalScore: 0,
-			totalQuestions: questionsCount,
-			correctAnswers: 0,
-			currentQuestionOrder: 0,
-			lastActivity: now,
-		});
+    const questionsCount = await ctx.db
+      .query("questions")
+      .withIndex("by_lab", (q) => q.eq("labId", lab._id))
+      .collect()
+      .then((arr) => arr.length);
 
-		return { sessionId, labId: lab._id };
-	},
+    const sessionId = await ctx.db.insert("labSessions", {
+      labId: lab._id,
+      userId: user._id,
+      attemptNumber: attemptsUsed + 1,
+      status: "in_progress",
+      startedAt: now,
+      completedAt: undefined,
+      totalScore: 0,
+      totalQuestions: questionsCount,
+      correctAnswers: 0,
+      currentQuestionOrder: 0,
+      lastActivity: now,
+    });
+
+    return { sessionId, labId: lab._id };
+  },
+});
+
+export const submit = mutation({
+  args: { sessionId: v.id("labSessions") },
+  handler: async (ctx, { sessionId }) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_subject", (q) => q.eq("subject", identity.subject))
+      .first();
+    if (!user) throw new Error("Unauthorized");
+
+    const session = await ctx.db.get(sessionId);
+    if (!session) throw new Error("Session not found");
+    if (session.userId !== user._id) throw new Error("Forbidden");
+    if (session.status !== "in_progress") throw new Error("Session is not active");
+
+    const answers = await ctx.db
+      .query("userAnswers")
+      .withIndex("by_session", (q) => q.eq("sessionId", sessionId))
+      .collect();
+
+    const correct = answers.reduce((acc, a) => acc + (a.isCorrect ? 1 : 0), 0);
+    const total = session.totalQuestions || (await ctx.db
+      .query("questions")
+      .withIndex("by_lab", (q) => q.eq("labId", session.labId))
+      .collect()
+      .then((arr) => arr.length));
+
+    const score = Math.round(((correct / (total || 1)) * 100));
+    const now = Date.now();
+
+    await ctx.db.patch(session._id, {
+      status: "completed",
+      completedAt: now,
+      correctAnswers: correct,
+      totalScore: score,
+      totalQuestions: total,
+      lastActivity: now,
+      currentQuestionOrder: Math.max(0, total - 1),
+    });
+
+    return { score, correct, total };
+  },
+});
+
+export const setCurrentQuestion = mutation({
+  args: { sessionId: v.id("labSessions"), questionOrder: v.number() },
+  handler: async (ctx, { sessionId, questionOrder }) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_subject", (q) => q.eq("subject", identity.subject))
+      .first();
+    if (!user) throw new Error("Unauthorized");
+
+    const session = await ctx.db.get(sessionId);
+    if (!session) throw new Error("Session not found");
+    if (session.userId !== user._id) throw new Error("Forbidden");
+    if (session.status !== "in_progress") throw new Error("Session is not active");
+
+    const now = Date.now();
+    await ctx.db.patch(session._id, {
+      currentQuestionOrder: Math.max(0, Math.floor(questionOrder)),
+      lastActivity: now,
+    });
+    return { ok: true };
+  },
 });

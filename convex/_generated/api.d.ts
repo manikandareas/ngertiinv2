@@ -20,6 +20,8 @@ import type * as labs_queries from "../labs/queries.js";
 import type * as labs_workflows from "../labs/workflows.js";
 import type * as questionOptions_mutations from "../questionOptions/mutations.js";
 import type * as questions_mutations from "../questions/mutations.js";
+import type * as sessions_queries from "../sessions/queries.js";
+import type * as userAnswers_mutations from "../userAnswers/mutations.js";
 import type * as userAnswers_queries from "../userAnswers/queries.js";
 import type * as users_queries from "../users/queries.js";
 import type * as utils_ownership from "../utils/ownership.js";
@@ -52,6 +54,8 @@ declare const fullApi: ApiFromModules<{
   "labs/workflows": typeof labs_workflows;
   "questionOptions/mutations": typeof questionOptions_mutations;
   "questions/mutations": typeof questions_mutations;
+  "sessions/queries": typeof sessions_queries;
+  "userAnswers/mutations": typeof userAnswers_mutations;
   "userAnswers/queries": typeof userAnswers_queries;
   "users/queries": typeof users_queries;
   "utils/ownership": typeof utils_ownership;

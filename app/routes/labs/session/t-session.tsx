@@ -1,7 +1,7 @@
-import React from "react";
+import { SessionPage } from "~/features/labs/session/session-page";
 
 function LabSessionCreatedByTeacher() {
-	return <div>LabSessionCreatedByTeacher</div>;
+	return <SessionPage />;
 }
 
 export default LabSessionCreatedByTeacher;
