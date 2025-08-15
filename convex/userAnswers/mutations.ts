@@ -78,3 +78,111 @@ export const saveAnswer = mutation({
     return { ok: true };
   },
 });
+
+export const saveAnswersBatch = mutation({
+  args: {
+    answers: v.array(v.object({
+      sessionId: v.id("labSessions"),
+      questionId: v.id("questions"),
+      selectedOptionId: v.id("questionOptions"),
+    })),
+  },
+  handler: async (ctx, { answers }) => {
+    if (answers.length === 0) return { savedCount: 0, errors: [] };
+    if (answers.length > 10) throw new Error("Batch size too large (max 10)");
+
+    const user = await requireCurrentUser(ctx);
+    const results = [];
+    const errors = [];
+    let totalCorrectDelta = 0;
+    const sessionId = answers[0]?.sessionId;
+
+    // Validate session once
+    const session = await ctx.db.get(sessionId);
+    if (!session) throw new Error("Session not found");
+    if (session.userId !== user._id) throw new Error("Forbidden");
+    if (session.status !== "in_progress") throw new Error("Session not active");
+
+    const now = Date.now();
+
+    // Process each answer
+    for (const answer of answers) {
+      try {
+        const { questionId, selectedOptionId } = answer;
+        
+        // Validate option
+        const option = await ctx.db.get(selectedOptionId);
+        if (!option) {
+          errors.push({ questionId, error: "Option not found" });
+          continue;
+        }
+        if (option.questionId !== questionId) {
+          errors.push({ questionId, error: "Option does not belong to question" });
+          continue;
+        }
+
+        // Find existing answer
+        const existing = await ctx.db
+          .query("userAnswers")
+          .withIndex("by_session_question", (q) => q.eq("sessionId", sessionId).eq("questionId", questionId))
+          .first();
+
+        const isCorrect = (option as Doc<"questionOptions">).isCorrect;
+        let correctDelta = 0;
+
+        if (existing) {
+          const prevCorrect = existing.isCorrect;
+          if (prevCorrect !== isCorrect) correctDelta = isCorrect ? 1 : -1;
+          
+          if (
+            existing.selectedOptionId !== selectedOptionId ||
+            existing.isCorrect !== isCorrect
+          ) {
+            await ctx.db.patch(existing._id, {
+              selectedOptionId,
+              isCorrect,
+              answeredAt: now,
+            });
+          } else {
+            // idempotent update
+            await ctx.db.patch(existing._id, { answeredAt: now });
+          }
+        } else {
+          await ctx.db.insert("userAnswers", {
+            sessionId,
+            questionId,
+            selectedOptionId,
+            isCorrect,
+            answeredAt: now,
+          });
+          correctDelta = isCorrect ? 1 : 0;
+        }
+
+        totalCorrectDelta += correctDelta;
+        results.push({ questionId, success: true });
+
+      } catch (error) {
+        errors.push({ 
+          questionId: answer.questionId, 
+          error: error instanceof Error ? error.message : "Unknown error" 
+        });
+      }
+    }
+
+    // Update session correctAnswers and lastActivity
+    if (totalCorrectDelta !== 0) {
+      await ctx.db.patch(session._id, {
+        correctAnswers: (session.correctAnswers ?? 0) + totalCorrectDelta,
+        lastActivity: now,
+      });
+    } else {
+      await ctx.db.patch(session._id, { lastActivity: now });
+    }
+
+    return { 
+      savedCount: results.length, 
+      errors,
+      totalCorrectDelta,
+    };
+  },
+});
