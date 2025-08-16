@@ -113,6 +113,8 @@ export function SessionPage() {
 	});
 
 	const [submitOpen, setSubmitOpen] = useState(false);
+	const [isFlushingAnswers, setIsFlushingAnswers] = useState(false);
+	const [submitError, setSubmitError] = useState<string | undefined>();
 
 	// Derived collections
 	const unansweredOrders = useMemo(() => {
@@ -160,13 +162,22 @@ export function SessionPage() {
 	}, [activeOrder, orders, gotoOrder]);
 
 	const handleSubmitClick = useCallback(async () => {
-		await answerQueue.flushNow();
-		if (unansweredOrders.length > 0) {
+		// Flush pending answers first
+		setIsFlushingAnswers(true);
+		setSubmitError(undefined);
+		
+		try {
+			await answerQueue.flushNow();
+			setIsFlushingAnswers(false);
+			// Open confirmation dialog
 			setSubmitOpen(true);
-		} else {
-			submitSession({ sessionId });
+		} catch (error) {
+			setIsFlushingAnswers(false);
+			setSubmitError(
+				error instanceof Error ? error.message : "Gagal menyimpan jawaban. Coba lagi."
+			);
 		}
-	}, [sessionId, submitSession, unansweredOrders, answerQueue.flushNow]);
+	}, [answerQueue.flushNow]);
 
 	// Keyboard shortcuts: 1–9 to select, arrows to navigate, Ctrl/Cmd+Enter to submit
 	useEffect(() => {
@@ -314,6 +325,16 @@ export function SessionPage() {
 				</div>
 			) : null}
 
+			{submitError && !submitOpen && (
+				<div className="rounded-md border border-red-200 bg-red-50 p-3">
+					<div className="flex items-center gap-2 text-red-600">
+						<WifiOffIcon className="size-4" />
+						<span className="text-sm font-medium">Gagal menyiapkan submit</span>
+					</div>
+					<p className="mt-1 text-xs text-red-600">{submitError}</p>
+				</div>
+			)}
+
 			{qDoc ? (
 				<div className="space-y-4">
 					<QuestionView order={qDoc.questionOrder} text={qDoc.questionText} />
@@ -353,7 +374,7 @@ export function SessionPage() {
 				onPrev={onPrev}
 				onNext={onNext}
 				onSubmit={handleSubmitClick}
-				submitting={submitting}
+				submitting={submitting || isFlushingAnswers}
 				reviewPanel={
 					<ReviewPanel
 						total={totalQuestions}
@@ -373,13 +394,37 @@ export function SessionPage() {
 				open={submitOpen}
 				onOpenChange={setSubmitOpen}
 				unansweredOrders={unansweredOrders}
-				onGoto={(order) => gotoOrder(order)}
-				onConfirmSubmit={async () => {
-					await answerQueue.flushNow();
-					setSubmitOpen(false);
-					submitSession({ sessionId });
+				onGotoFirstUnanswered={() => {
+					if (unansweredOrders.length > 0) {
+						gotoOrder(unansweredOrders[0]);
+					}
 				}}
-				disabled={submitting}
+				onConfirmSubmit={async () => {
+					setSubmitError(undefined);
+					try {
+						await new Promise<void>((resolve, reject) => {
+							submitSession(
+								{ sessionId },
+								{
+									onSuccess: () => {
+										setSubmitOpen(false);
+										resolve();
+									},
+									onError: (error) => {
+										reject(error);
+									},
+								}
+							);
+						});
+					} catch (error) {
+						setSubmitError(
+							error instanceof Error ? error.message : "Gagal mengirim jawaban. Coba lagi."
+						);
+						throw error;
+					}
+				}}
+				isSubmitting={submitting}
+				errorMessage={submitError}
 			/>
 		</div>
 	);

@@ -22,7 +22,7 @@ export function NavigationBar({
 	canNext: boolean;
 	onPrev: () => void;
 	onNext: () => void;
-	onSubmit: () => void;
+	onSubmit: () => void | Promise<void>;
 	submitting?: boolean;
 	reviewPanel?: React.ReactNode;
 }) {
